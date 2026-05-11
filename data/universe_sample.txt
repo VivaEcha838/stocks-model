@@ -1,0 +1,16 @@
+# One ticker per line. Lines starting with # are ignored.
+# Sample universe — high-short-interest names from the original notes.
+KSS
+IONQ
+W
+GME
+BYND
+CAR
+BBBY
+CVNA
+UPST
+RIVN
+LCID
+M
+AI
+BIG
