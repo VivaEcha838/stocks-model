@@ -56,3 +56,14 @@ def fetch_float(ticker: str) -> dict[str, Any]:
         "free_float": shares,
         "free_float_percent": None,
     }
+
+
+def fetch_market_snapshot(include_otc: bool = False) -> list[dict[str, Any]]:
+    params: dict[str, Any] = {}
+    if include_otc:
+        params["include_otc"] = "true"
+    try:
+        data = _get("/v2/snapshot/locale/us/markets/stocks/tickers", params)
+    except APIError:
+        return []
+    return data.get("tickers") or []

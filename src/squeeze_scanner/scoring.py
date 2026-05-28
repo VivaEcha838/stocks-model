@@ -17,6 +17,23 @@ def _band_normalize(value: float, band: tuple[float, float]) -> float:
     return clamp01((value - zero_at) / (one_at - zero_at))
 
 
+def _peaked_normalize(value: float, band: tuple[float, float, float, float]) -> float:
+    ramp_start, peak_low, peak_high, decay_end = band
+    if value < ramp_start:
+        return 0.0
+    if value <= peak_low:
+        if peak_low == ramp_start:
+            return 1.0
+        return clamp01((value - ramp_start) / (peak_low - ramp_start))
+    if value <= peak_high:
+        return 1.0
+    if value < decay_end:
+        if decay_end == peak_high:
+            return 1.0
+        return clamp01((decay_end - value) / (decay_end - peak_high))
+    return 0.0
+
+
 @dataclass
 class NormalizedFeatures:
     short_interest: float
@@ -54,12 +71,25 @@ def score_features(raw: RawFeatures) -> tuple[float, SqueezeLabels]:
     )
     score = fuel + pressure + ignition
 
+    reasons: list[str] = []
+    if (raw.short_pct_float or 0) >= 15:
+        reasons.append(f"Short interest {raw.short_pct_float:.1f}% of float")
+    if (raw.days_to_cover or 0) >= 4:
+        reasons.append(f"Days-to-cover {raw.days_to_cover:.1f}")
+    if raw.volume_ratio >= 1.5:
+        reasons.append(f"Volume {raw.volume_ratio:.2f}x average")
+    if raw.breakout_pct >= 0.02:
+        reasons.append(f"Breakout +{raw.breakout_pct*100:.1f}% above 20d high")
+    if raw.catalyst_score >= 0.5:
+        reasons.append("Active catalyst")
+
     return round(score, 2), SqueezeLabels(
         fuel=round(fuel, 2),
         pressure=round(pressure, 2),
         ignition=round(ignition, 2),
         risk_level=label_from_score(score),
         momentum=momentum_from_ignition(ignition),
+        reasons=reasons,
     )
 
 
